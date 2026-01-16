@@ -3,7 +3,7 @@ use ephemeral_rollups_sdk::anchor::{commit, delegate, ephemeral};
 use ephemeral_rollups_sdk::cpi::DelegateConfig;
 use ephemeral_rollups_sdk::ephem::{commit_accounts, commit_and_undelegate_accounts};
 
-declare_id!("25TKhNPvgaQbD1sqLwt45F4532Vgi4qBqvBEd4Gk4pdE");
+declare_id!("B6WJ2C7RhGLQPCrXZzVqbTC2YaPiC9FAH2LE52WXDFiF");
 
 pub const SESSION_SEED: &[u8] = b"session";
 
@@ -96,7 +96,7 @@ pub mod flowstream {
 #[instruction(service_id: Pubkey)]
 pub struct InitializeSession<'info> {
     #[account(
-        init,
+        init_if_needed,
         payer = owner,
         space = UsageSession::SIZE,
         seeds = [SESSION_SEED, owner.key().as_ref(), service_id.as_ref()],

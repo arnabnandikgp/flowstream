@@ -6,7 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-flowstream = "25TKhNPvgaQbD1sqLwt45F4532Vgi4qBqvBEd4Gk4pdE"
+flowstream = "B6WJ2C7RhGLQPCrXZzVqbTC2YaPiC9FAH2LE52WXDFiF"
+
+[programs.devnet]
+flowstream = "B6WJ2C7RhGLQPCrXZzVqbTC2YaPiC9FAH2LE52WXDFiF"
 
 [registry]
 url = "https://api.apr.dev"

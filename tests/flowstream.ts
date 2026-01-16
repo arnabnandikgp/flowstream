@@ -3,12 +3,15 @@ import { Program, web3 } from "@coral-xyz/anchor";
 import { Flowstream } from "../target/types/flowstream";
 import { GetCommitmentSignature } from "@magicblock-labs/ephemeral-rollups-sdk";
 import fs from "fs";
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 const SESSION_SEED = "session";
 
 describe("flowstream", () => {
   const cluster = (process.env.FLOWSTREAM_CLUSTER || "localnet").toLowerCase();
   const isDevnet = cluster === "devnet";
+  console.log("isDevnet---------------", process.env.FLOWSTREAM_CLUSTER);
   const devnetRpc =
     process.env.FLOWSTREAM_DEVNET_RPC ||
     "https://devnet.helius-rpc.com/?api-key=daa43648-936f-40e1-9303-2ea12ba55a2a";
@@ -58,7 +61,7 @@ describe("flowstream", () => {
     const start = Date.now();
     const txHash = await program.methods
       .initializeSession(serviceId, unit, decimals)
-      .accounts({
+      .accountsPartial({
         session: sessionPda,
         owner,
         systemProgram: web3.SystemProgram.programId,
@@ -75,7 +78,7 @@ describe("flowstream", () => {
     const start = Date.now();
     const txHash = await program.methods
       .recordUsage(usageAmount)
-      .accounts({
+      .accountsPartial({
         session: sessionPda,
         owner,
       })
@@ -108,7 +111,7 @@ describe("flowstream", () => {
 
       const txHash = await program.methods
         .delegate(owner, serviceId)
-        .accounts({
+        .accountsPartial({
           payer: owner,
           pda: sessionPda,
         })
@@ -125,7 +128,7 @@ describe("flowstream", () => {
       const start = Date.now();
       let tx = await program.methods
         .recordUsage(usageAmount)
-        .accounts({
+        .accountsPartial({
           session: sessionPda,
           owner,
         })
@@ -146,7 +149,7 @@ describe("flowstream", () => {
       const start = Date.now();
       let tx = await program.methods
         .commit()
-        .accounts({
+        .accountsPartial({
           payer: providerEphemeralRollup.wallet.publicKey,
           session: sessionPda,
         })
@@ -186,7 +189,7 @@ describe("flowstream", () => {
       const start = Date.now();
       let tx = await program.methods
         .commitAndUndelegate()
-        .accounts({
+        .accountsPartial({
           payer: providerEphemeralRollup.wallet.publicKey,
           session: sessionPda,
         })
@@ -216,5 +219,7 @@ function loadKeypairFromFile(): web3.Keypair {
   }
   const raw = fs.readFileSync(keypairPath, "utf-8");
   const secretKey = Uint8Array.from(JSON.parse(raw));
+  //console log the public key for this secret
+  console.log("public key---------------", web3.Keypair.fromSecretKey(secretKey).publicKey.toString());
   return web3.Keypair.fromSecretKey(secretKey);
 }
