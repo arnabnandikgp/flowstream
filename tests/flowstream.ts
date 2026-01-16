@@ -5,6 +5,7 @@ import { GetCommitmentSignature } from "@magicblock-labs/ephemeral-rollups-sdk";
 import fs from "fs";
 
 const SESSION_SEED = "session";
+const ESCROW_SEED = "escrow";
 
 describe("flowstream", () => {
   const cluster = (process.env.FLOWSTREAM_CLUSTER || "localnet").toLowerCase();
@@ -64,13 +65,28 @@ describe("flowstream", () => {
   const unit = 1;
   const decimals = 3;
   const usageAmount = new anchor.BN(1500);
+  const depositLamports = new anchor.BN(5 * web3.LAMPORTS_PER_SOL);
+  const rateLamportsPerUnit = new anchor.BN(7000);
+  const merchant = web3.Keypair.generate().publicKey;
+  const [escrowPda] = web3.PublicKey.findProgramAddressSync(
+    [Buffer.from(ESCROW_SEED), sessionPda.toBuffer()],
+    program.programId
+  );
 
   it("Initialize session on Solana", async () => {
     const start = Date.now();
     const txHash = await program.methods
-      .initializeSession(serviceId, unit, decimals)
+      .initializeSession(
+        serviceId,
+        unit,
+        decimals,
+        depositLamports,
+        rateLamportsPerUnit,
+        merchant
+      )
       .accountsPartial({
         session: sessionPda,
+        escrow: escrowPda,
         owner,
         systemProgram: web3.SystemProgram.programId,
       })
@@ -175,9 +191,15 @@ describe("flowstream", () => {
       ).blockhash;
       tx = await providerEphemeralRollup.wallet.signTransaction(tx);
 
-      const txHash = await providerEphemeralRollup.sendAndConfirm(tx, [], {
-        skipPreflight: true,
-      });
+      const txHash =
+        await providerEphemeralRollup.connection.sendRawTransaction(
+          tx.serialize(),
+          { skipPreflight: true }
+        );
+      await providerEphemeralRollup.connection.confirmTransaction(
+        txHash,
+        "confirmed"
+      );
       const duration = Date.now() - start;
       console.log(`${duration}ms (ER) Commit txHash: ${txHash}`);
 
@@ -216,11 +238,58 @@ describe("flowstream", () => {
       ).blockhash;
       tx = await providerEphemeralRollup.wallet.signTransaction(tx);
 
-      const txHash = await providerEphemeralRollup.sendAndConfirm(tx, [], {
-        skipPreflight: true,
-      });
+      const txHash =
+        await providerEphemeralRollup.connection.sendRawTransaction(
+          tx.serialize(),
+          { skipPreflight: true }
+        );
+      await providerEphemeralRollup.connection.confirmTransaction(
+        txHash,
+        "confirmed"
+      );
       const duration = Date.now() - start;
       console.log(`${duration}ms (ER) Commit and Undelegate txHash: ${txHash}`);
+
+      const commitSig = await GetCommitmentSignature(
+        txHash,
+        providerEphemeralRollup.connection
+      );
+      const commitDuration = Date.now() - start;
+      console.log(
+        `${commitDuration}ms (Base Layer) Commit txHash: ${commitSig}`
+      );
+
+      const settleTx = await program.methods
+        .settleSession()
+        .accounts({
+          session: sessionPda,
+          escrow: escrowPda,
+          owner,
+          merchant,
+          systemProgram: web3.SystemProgram.programId,
+        })
+        .rpc({
+          commitment: "confirmed",
+        });
+      console.log(`(Base Layer) Settle txHash: ${settleTx}`);
+
+      const session = await program.account.usageSession.fetch(sessionPda);
+      const expectedUsage = usageAmount.muln(2);
+      const expectedCost = expectedUsage.mul(rateLamportsPerUnit);
+      const expectedRefund = depositLamports.sub(expectedCost);
+      if (!session.settledCostLamports.eq(expectedCost)) {
+        throw new Error(
+          `Unexpected cost: ${session.settledCostLamports.toString()} expected ${expectedCost.toString()}`
+        );
+      }
+      if (!session.refundedLamports.eq(expectedRefund)) {
+        throw new Error(
+          `Unexpected refund: ${session.refundedLamports.toString()} expected ${expectedRefund.toString()}`
+        );
+      }
+      if (session.status !== 2) {
+        throw new Error(`Unexpected status: ${session.status} expected 2`);
+      }
     });
   });
 });

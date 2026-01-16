@@ -60,6 +60,32 @@
         background: #1f2937;
         border: 1px solid #334155;
       }
+      .controls {
+        display: flex;
+        gap: 12px;
+        margin-top: 16px;
+        flex-wrap: wrap;
+      }
+      .input {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #2a2f3a;
+        background: #0b0d12;
+        color: #e6e6e6;
+        min-width: 160px;
+      }
+      .button {
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid #334155;
+        background: #111827;
+        color: #e6e6e6;
+        cursor: pointer;
+      }
+      .button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
       .log {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas;
         font-size: 12px;
@@ -80,6 +106,19 @@
         <h2>Flowstream EV Charging Demo</h2>
         <div class="label">Status</div>
         <div id="status" class="status">Waiting for demo...</div>
+        <div class="controls">
+          <input
+            id="deposit"
+            class="input"
+            type="number"
+            step="0.1"
+            min="0"
+            value="5"
+            placeholder="Deposit (SOL)"
+          />
+          <button id="connect" class="button">Connect</button>
+          <button id="disconnect" class="button" disabled>Disconnect</button>
+        </div>
       </div>
 
       <div class="card grid">
@@ -100,6 +139,26 @@
           <div class="label">Update Count</div>
           <div id="count" class="metric">0</div>
         </div>
+        <div>
+          <div class="label">Wallet Balance (SOL)</div>
+          <div id="balance" class="metric">0.000</div>
+        </div>
+        <div>
+          <div class="label">Locked Deposit (SOL)</div>
+          <div id="locked" class="metric">0.000</div>
+        </div>
+        <div>
+          <div class="label">Accrued Cost (SOL)</div>
+          <div id="cost" class="metric">0.000</div>
+        </div>
+        <div>
+          <div class="label">Refund (SOL)</div>
+          <div id="refund" class="metric">0.000</div>
+        </div>
+        <div>
+          <div class="label">Merchant</div>
+          <div id="merchant" class="metric">-</div>
+        </div>
       </div>
 
       <div class="card">
@@ -117,6 +176,14 @@
       const countEl = document.getElementById("count");
       const sessionEl = document.getElementById("session");
       const chargerEl = document.getElementById("charger");
+      const balanceEl = document.getElementById("balance");
+      const lockedEl = document.getElementById("locked");
+      const costEl = document.getElementById("cost");
+      const refundEl = document.getElementById("refund");
+      const merchantEl = document.getElementById("merchant");
+      const depositInput = document.getElementById("deposit");
+      const connectBtn = document.getElementById("connect");
+      const disconnectBtn = document.getElementById("disconnect");
 
       function appendLog(line) {
         logEl.textContent = `${line}\n${logEl.textContent}`.slice(0, 8000);
@@ -144,10 +211,42 @@
         if (data.charger) {
           chargerEl.textContent = data.charger;
         }
+        if (data.walletBalanceSol !== undefined) {
+          balanceEl.textContent = data.walletBalanceSol.toFixed(3);
+        }
+        if (data.depositSol !== undefined) {
+          lockedEl.textContent = data.depositSol.toFixed(3);
+        }
+        if (data.costSol !== undefined) {
+          costEl.textContent = data.costSol.toFixed(3);
+        }
+        if (data.refundSol !== undefined) {
+          refundEl.textContent = data.refundSol.toFixed(3);
+        }
+        if (data.merchant) {
+          merchantEl.textContent = data.merchant;
+        }
+        if (data.connected !== undefined) {
+          connectBtn.disabled = data.connected;
+          disconnectBtn.disabled = !data.connected;
+        }
         if (data.log) {
           appendLog(data.log);
         }
       };
+
+      connectBtn.addEventListener("click", async () => {
+        const depositSol = Number(depositInput.value || 0);
+        await fetch("/connect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ depositSol }),
+        });
+      });
+
+      disconnectBtn.addEventListener("click", async () => {
+        await fetch("/disconnect", { method: "POST" });
+      });
     </script>
   </body>
 </html>
