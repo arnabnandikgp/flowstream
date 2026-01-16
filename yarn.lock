@@ -1023,7 +1023,7 @@ ts-mocha@^11.1.0:
   resolved "https://registry.npmjs.org/ts-mocha/-/ts-mocha-11.1.0.tgz"
   integrity sha512-yT7FfzNRCu8ZKkYvAOiH01xNma/vLq6Vit7yINKYFNVP8e5UyrYXSOMIipERTpzVKJQ4Qcos5bQo1tNERNZevQ==
 
-"ts-node@^7.X.X || ^8.X.X || ^9.X.X || ^10.X.X":
+ts-node@^10.9.2, "ts-node@^7.X.X || ^8.X.X || ^9.X.X || ^10.X.X":
   version "10.9.2"
   resolved "https://registry.npmjs.org/ts-node/-/ts-node-10.9.2.tgz"
   integrity sha512-f0FFpIdcHgn8zcPSbf1dRevwt047YMnaiJM3u2w2RewrB+fob/zePZcrOyQoLMMO7aBIddLcQIEK5dYjkLnGrQ==
@@ -1052,7 +1052,7 @@ type-detect@^4.0.0, type-detect@^4.1.0:
   resolved "https://registry.npmjs.org/type-detect/-/type-detect-4.1.0.tgz"
   integrity sha512-Acylog8/luQ8L7il+geoSxhEkazvkslg7PSNKOX59mbB9cOveP5aq9h74Y7YU8yDpJwetzQQrfIwtf4Wp4LKcw==
 
-typescript@^5.3.0, typescript@^5.7.3, typescript@>=2.7, typescript@>=5.3.3:
+typescript@^5.3.0, typescript@^5.9.3, typescript@>=2.7, typescript@>=5.3.3:
   version "5.9.3"
   resolved "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz"
   integrity sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==

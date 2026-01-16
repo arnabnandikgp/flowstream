@@ -3,7 +3,8 @@
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
-    "test:local-er": "./scripts/test-local-er.sh"
+    "test:local-er": "./scripts/test-local-er.sh",
+    "demo:ev": "./scripts/demo-local-ev.sh"
   },
   "dependencies": {
     "@coral-xyz/anchor": "0.32.1",
@@ -19,6 +20,7 @@
     "mocha": "^11.7.5",
     "prettier": "^2.6.2",
     "ts-mocha": "^11.1.0",
-    "typescript": "^5.7.3"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   }
 }

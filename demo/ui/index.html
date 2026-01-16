@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flowstream EV Demo</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #0f1115;
+        color: #e6e6e6;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 960px;
+        margin: 40px auto;
+        padding: 24px;
+      }
+      .card {
+        background: #161a22;
+        border: 1px solid #2a2f3a;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 12px;
+      }
+      .metric {
+        font-size: 28px;
+        font-weight: 600;
+      }
+      .label {
+        color: #9aa4b2;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .bar {
+        height: 10px;
+        background: #263042;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-top: 8px;
+      }
+      .bar > div {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #22c55e, #3b82f6);
+        transition: width 0.2s ease;
+      }
+      .status {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: #1f2937;
+        border: 1px solid #334155;
+      }
+      .log {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas;
+        font-size: 12px;
+        color: #cbd5f5;
+        max-height: 220px;
+        overflow: auto;
+        background: #0b0d12;
+        border: 1px solid #1f2937;
+        padding: 12px;
+        border-radius: 8px;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h2>Flowstream EV Charging Demo</h2>
+        <div class="label">Status</div>
+        <div id="status" class="status">Waiting for demo...</div>
+      </div>
+
+      <div class="card grid">
+        <div>
+          <div class="label">Charger</div>
+          <div id="charger" class="metric">-</div>
+        </div>
+        <div>
+          <div class="label">Session</div>
+          <div id="session" class="metric">-</div>
+        </div>
+        <div>
+          <div class="label">Total Usage (kWh)</div>
+          <div id="total" class="metric">0.000</div>
+          <div class="bar"><div id="totalBar"></div></div>
+        </div>
+        <div>
+          <div class="label">Update Count</div>
+          <div id="count" class="metric">0</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="label">Events</div>
+        <div id="log" class="log"></div>
+      </div>
+    </div>
+
+    <script>
+      const evtSource = new EventSource("/events");
+      const logEl = document.getElementById("log");
+      const statusEl = document.getElementById("status");
+      const totalEl = document.getElementById("total");
+      const totalBarEl = document.getElementById("totalBar");
+      const countEl = document.getElementById("count");
+      const sessionEl = document.getElementById("session");
+      const chargerEl = document.getElementById("charger");
+
+      function appendLog(line) {
+        logEl.textContent = `${line}\n${logEl.textContent}`.slice(0, 8000);
+      }
+
+      evtSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.status) {
+          statusEl.textContent = data.status;
+        }
+        if (data.totalUsageKwh !== undefined) {
+          totalEl.textContent = data.totalUsageKwh.toFixed(3);
+          const pct = Math.min(
+            100,
+            (data.totalUsageKwh / data.targetUsageKwh) * 100
+          );
+          totalBarEl.style.width = `${pct}%`;
+        }
+        if (data.updateCount !== undefined) {
+          countEl.textContent = data.updateCount;
+        }
+        if (data.session) {
+          sessionEl.textContent = data.session;
+        }
+        if (data.charger) {
+          chargerEl.textContent = data.charger;
+        }
+        if (data.log) {
+          appendLog(data.log);
+        }
+      };
+    </script>
+  </body>
+</html>
