@@ -3,15 +3,12 @@ import { Program, web3 } from "@coral-xyz/anchor";
 import { Flowstream } from "../target/types/flowstream";
 import { GetCommitmentSignature } from "@magicblock-labs/ephemeral-rollups-sdk";
 import fs from "fs";
-import * as dotenv from 'dotenv';
-dotenv.config();
 
 const SESSION_SEED = "session";
 
 describe("flowstream", () => {
   const cluster = (process.env.FLOWSTREAM_CLUSTER || "localnet").toLowerCase();
   const isDevnet = cluster === "devnet";
-  console.log("isDevnet---------------", process.env.FLOWSTREAM_CLUSTER);
   const devnetRpc =
     process.env.FLOWSTREAM_DEVNET_RPC ||
     "https://devnet.helius-rpc.com/?api-key=daa43648-936f-40e1-9303-2ea12ba55a2a";
@@ -32,18 +29,29 @@ describe("flowstream", () => {
     provider.connection.rpcEndpoint.includes("localhost") ||
     provider.connection.rpcEndpoint.includes("127.0.0.1");
 
+  const defaultEphemeralHttp = isLocalnet
+    ? "http://127.0.0.1:7799"
+    : "https://devnet-as.magicblock.app/";
+  const defaultEphemeralWs = isLocalnet
+    ? "ws://127.0.0.1:7800"
+    : "wss://devnet-as.magicblock.app/";
+
   const providerEphemeralRollup = new anchor.AnchorProvider(
     new web3.Connection(
-      process.env.EPHEMERAL_PROVIDER_ENDPOINT ||
-        "https://devnet-as.magicblock.app/",
+      process.env.EPHEMERAL_PROVIDER_ENDPOINT || defaultEphemeralHttp,
       {
-        wsEndpoint:
-          process.env.EPHEMERAL_WS_ENDPOINT ||
-          "wss://devnet-as.magicblock.app/",
+        wsEndpoint: process.env.EPHEMERAL_WS_ENDPOINT || defaultEphemeralWs,
       }
     ),
     provider.wallet
   );
+
+  console.log("Base Layer Connection: ", provider.connection.rpcEndpoint);
+  console.log(
+    "Ephemeral Rollup Connection: ",
+    providerEphemeralRollup.connection.rpcEndpoint
+  );
+  console.log(`Current SOL Public Key: ${provider.wallet.publicKey}`);
 
   const program = anchor.workspace.Flowstream as Program<Flowstream>;
   const owner = provider.wallet.publicKey;
@@ -90,7 +98,10 @@ describe("flowstream", () => {
     console.log(`${duration}ms (Base Layer) Record usage txHash: ${txHash}`);
   });
 
-  const describeEr = isLocalnet ? describe.skip : describe;
+  const isEphemeralLocal =
+    providerEphemeralRollup.connection.rpcEndpoint.includes("localhost") ||
+    providerEphemeralRollup.connection.rpcEndpoint.includes("127.0.0.1");
+  const describeEr = isLocalnet && !isEphemeralLocal ? describe.skip : describe;
 
   describeEr("ephemeral rollup flow", () => {
     it("Delegate session to ER", async () => {
@@ -140,7 +151,10 @@ describe("flowstream", () => {
       ).blockhash;
       tx = await providerEphemeralRollup.wallet.signTransaction(tx);
 
-      const txHash = await providerEphemeralRollup.sendAndConfirm(tx);
+      const txHash = await providerEphemeralRollup.sendAndConfirm(tx, [], {
+        skipPreflight: true,
+        commitment: "confirmed",
+      });
       const duration = Date.now() - start;
       console.log(`${duration}ms (ER) Record usage txHash: ${txHash}`);
     });
@@ -178,9 +192,10 @@ describe("flowstream", () => {
       );
 
       const session = await program.account.usageSession.fetch(sessionPda);
-      if (!session.totalUsage.eq(usageAmount)) {
+      const expectedUsage = usageAmount.muln(2);
+      if (!session.totalUsage.eq(expectedUsage)) {
         throw new Error(
-          `Unexpected usage: ${session.totalUsage.toString()} expected ${usageAmount.toString()}`
+          `Unexpected usage: ${session.totalUsage.toString()} expected ${expectedUsage.toString()}`
         );
       }
     });
@@ -219,7 +234,5 @@ function loadKeypairFromFile(): web3.Keypair {
   }
   const raw = fs.readFileSync(keypairPath, "utf-8");
   const secretKey = Uint8Array.from(JSON.parse(raw));
-  //console log the public key for this secret
-  console.log("public key---------------", web3.Keypair.fromSecretKey(secretKey).publicKey.toString());
   return web3.Keypair.fromSecretKey(secretKey);
 }

@@ -9,3 +9,4 @@ magicblock-engine-examples/
 *.md
 !README.md
 .env
+magicblock-test-storage
