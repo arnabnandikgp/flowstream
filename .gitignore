@@ -8,3 +8,4 @@ test-ledger
 magicblock-engine-examples/
 *.md
 !README.md
+.env

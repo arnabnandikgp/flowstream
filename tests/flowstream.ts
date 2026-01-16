@@ -2,11 +2,27 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program, web3 } from "@coral-xyz/anchor";
 import { Flowstream } from "../target/types/flowstream";
 import { GetCommitmentSignature } from "@magicblock-labs/ephemeral-rollups-sdk";
+import fs from "fs";
 
 const SESSION_SEED = "session";
 
 describe("flowstream", () => {
-  const provider = anchor.AnchorProvider.env();
+  const cluster = (process.env.FLOWSTREAM_CLUSTER || "localnet").toLowerCase();
+  const isDevnet = cluster === "devnet";
+  const devnetRpc =
+    process.env.FLOWSTREAM_DEVNET_RPC ||
+    "https://devnet.helius-rpc.com/?api-key=daa43648-936f-40e1-9303-2ea12ba55a2a";
+
+  const provider = isDevnet
+    ? new anchor.AnchorProvider(
+        new web3.Connection(devnetRpc, {
+          commitment: "confirmed",
+        }),
+        new anchor.Wallet(loadKeypairFromFile()),
+        { commitment: "confirmed" }
+      )
+    : anchor.AnchorProvider.env();
+
   anchor.setProvider(provider);
 
   const isLocalnet =
@@ -23,7 +39,7 @@ describe("flowstream", () => {
           "wss://devnet-as.magicblock.app/",
       }
     ),
-    anchor.Wallet.local()
+    provider.wallet
   );
 
   const program = anchor.workspace.Flowstream as Program<Flowstream>;
@@ -190,3 +206,15 @@ describe("flowstream", () => {
     });
   });
 });
+
+function loadKeypairFromFile(): web3.Keypair {
+  const keypairPath = process.env.FLOWSTREAM_KEYPAIR_PATH;
+  if (!keypairPath) {
+    throw new Error(
+      "FLOWSTREAM_KEYPAIR_PATH must be set when FLOWSTREAM_CLUSTER=devnet"
+    );
+  }
+  const raw = fs.readFileSync(keypairPath, "utf-8");
+  const secretKey = Uint8Array.from(JSON.parse(raw));
+  return web3.Keypair.fromSecretKey(secretKey);
+}
