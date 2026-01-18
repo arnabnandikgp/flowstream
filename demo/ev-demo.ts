@@ -20,7 +20,13 @@ type DemoState = {
   depositSol: number;
   costSol: number;
   refundSol: number;
+  rateSolPerKwh: number;
+  updateIntervalMs: number;
+  updatesPerSecond: number;
   merchant: string;
+  merchantBalanceBeforeSol: number;
+  merchantBalanceAfterSol: number;
+  merchantBalanceSol: number;
   connected: boolean;
   log?: string;
 };
@@ -56,7 +62,13 @@ const state: DemoState = {
   depositSol: 0,
   costSol: 0,
   refundSol: 0,
+  rateSolPerKwh: RATE_SOL_PER_KWH,
+  updateIntervalMs: UPDATE_INTERVAL_MS,
+  updatesPerSecond: 1000 / UPDATE_INTERVAL_MS,
   merchant: "-",
+  merchantBalanceBeforeSol: 0,
+  merchantBalanceAfterSol: 0,
+  merchantBalanceSol: 0,
   connected: false,
 };
 
@@ -220,6 +232,14 @@ async function updateBalances() {
   broadcast({ walletBalanceSol: balance / web3.LAMPORTS_PER_SOL });
 }
 
+async function getBalanceSol(pubkey: web3.PublicKey) {
+  if (!provider) {
+    return 0;
+  }
+  const balance = await provider.connection.getBalance(pubkey);
+  return balance / web3.LAMPORTS_PER_SOL;
+}
+
 async function connectSession(depositSol: number) {
   if (!program || !provider || !wallet || !providerEphemeralRollup) {
     throw new Error("Clients not initialized");
@@ -237,6 +257,9 @@ async function connectSession(depositSol: number) {
     web3.LAMPORTS_PER_SOL
   );
   await provider.connection.confirmTransaction(airdropSig, "confirmed");
+  const merchantBalanceBeforeSol = await getBalanceSol(
+    merchantKeypair.publicKey
+  );
 
   chargerId = web3.Keypair.generate().publicKey;
   sessionPda = web3.PublicKey.findProgramAddressSync(
@@ -267,7 +290,12 @@ async function connectSession(depositSol: number) {
     depositSol,
     costSol: 0,
     refundSol: 0,
+    rateSolPerKwh: RATE_SOL_PER_KWH,
+    updateIntervalMs: UPDATE_INTERVAL_MS,
+    updatesPerSecond: 1000 / UPDATE_INTERVAL_MS,
     merchant: merchantKeypair.publicKey.toBase58().slice(0, 8) + "…",
+    merchantBalanceBeforeSol,
+    merchantBalanceSol: merchantBalanceBeforeSol,
     connected: true,
   });
 
@@ -420,6 +448,10 @@ async function finalizeSession() {
     .rpc({ commitment: "confirmed" });
   log(`Settled session on base layer: ${settleSig}`);
 
+  const merchantBalanceAfterSol = await getBalanceSol(
+    merchantKeypair.publicKey
+  );
+
   const finalSession = await program.account.usageSession.fetch(sessionPda);
   const finalUsageKwh = Number(finalSession.totalUsage) / 10 ** DECIMALS;
   const costSol =
@@ -431,6 +463,8 @@ async function finalizeSession() {
     totalUsageKwh: finalUsageKwh,
     costSol,
     refundSol,
+    merchantBalanceAfterSol,
+    merchantBalanceSol: merchantBalanceAfterSol,
     connected: false,
   });
   log(`Final usage: ${finalUsageKwh.toFixed(3)} kWh`);

@@ -140,6 +140,18 @@
           <div id="count" class="metric">0</div>
         </div>
         <div>
+          <div class="label">Update Interval (ms)</div>
+          <div id="interval" class="metric">-</div>
+        </div>
+        <div>
+          <div class="label">Update Rate (per sec)</div>
+          <div id="ratePerSec" class="metric">-</div>
+        </div>
+        <div>
+          <div class="label">Charging Rate (SOL/kWh)</div>
+          <div id="rate" class="metric">-</div>
+        </div>
+        <div>
           <div class="label">Wallet Balance (SOL)</div>
           <div id="balance" class="metric">0.000</div>
         </div>
@@ -158,6 +170,18 @@
         <div>
           <div class="label">Merchant</div>
           <div id="merchant" class="metric">-</div>
+        </div>
+        <div>
+          <div class="label">Merchant Balance Before (SOL)</div>
+          <div id="merchantBefore" class="metric">0.000</div>
+        </div>
+        <div>
+          <div class="label">Merchant Balance After (SOL)</div>
+          <div id="merchantAfter" class="metric">0.000</div>
+        </div>
+        <div>
+          <div class="label">Merchant Balance Now (SOL)</div>
+          <div id="merchantNow" class="metric">0.000</div>
         </div>
       </div>
 
@@ -184,6 +208,12 @@
       const depositInput = document.getElementById("deposit");
       const connectBtn = document.getElementById("connect");
       const disconnectBtn = document.getElementById("disconnect");
+      const intervalEl = document.getElementById("interval");
+      const ratePerSecEl = document.getElementById("ratePerSec");
+      const rateEl = document.getElementById("rate");
+      const merchantBeforeEl = document.getElementById("merchantBefore");
+      const merchantAfterEl = document.getElementById("merchantAfter");
+      const merchantNowEl = document.getElementById("merchantNow");
 
       function appendLog(line) {
         logEl.textContent = `${line}\n${logEl.textContent}`.slice(0, 8000);
@@ -205,6 +235,15 @@
         if (data.updateCount !== undefined) {
           countEl.textContent = data.updateCount;
         }
+        if (data.updateIntervalMs !== undefined) {
+          intervalEl.textContent = data.updateIntervalMs;
+        }
+        if (data.updatesPerSecond !== undefined) {
+          ratePerSecEl.textContent = data.updatesPerSecond.toFixed(1);
+        }
+        if (data.rateSolPerKwh !== undefined) {
+          rateEl.textContent = data.rateSolPerKwh.toFixed(4);
+        }
         if (data.session) {
           sessionEl.textContent = data.session;
         }
@@ -225,6 +264,16 @@
         }
         if (data.merchant) {
           merchantEl.textContent = data.merchant;
+        }
+        if (data.merchantBalanceBeforeSol !== undefined) {
+          merchantBeforeEl.textContent =
+            data.merchantBalanceBeforeSol.toFixed(3);
+        }
+        if (data.merchantBalanceAfterSol !== undefined) {
+          merchantAfterEl.textContent = data.merchantBalanceAfterSol.toFixed(3);
+        }
+        if (data.merchantBalanceSol !== undefined) {
+          merchantNowEl.textContent = data.merchantBalanceSol.toFixed(3);
         }
         if (data.connected !== undefined) {
           connectBtn.disabled = data.connected;
